@@ -1,9 +1,11 @@
 package models
 
 import (
-	"time"
-
+	"fmt"
+	"github.com/Shopify/sarama"
 	"github.com/go-xorm/xorm"
+	"log"
+	"time"
 )
 
 type TaskType int8
@@ -27,18 +29,41 @@ type TaskLog struct {
 	BaseModel  `json:"-" xorm:"-"`
 }
 
+// 截获日志保存路径，保存到kafka 按照不同环境来保存
 func (taskLog *TaskLog) Create() (insertId int64, err error) {
-	_, err = Db.Insert(taskLog)
-	if err == nil {
-		insertId = taskLog.Id
+
+	if taskLog.Status != 1 {
+		taskLog.Pushtokafka(taskLog)
 	}
 
 	return
 }
 
+func (TaskLog *TaskLog) Pushtokafka(datas interface{}) {
+	config := sarama.NewConfig()                                          //实例化个sarama的Config
+	config.Producer.Return.Successes = true                               //是否开启消息发送成功后通知 successes channel
+	config.Producer.Partitioner = sarama.NewRandomPartitioner             //随机分区器
+	client, err := sarama.NewClient([]string{"123.57.16.249:80"}, config) //初始化客户端
+	defer client.Close()
+	if err != nil {
+		panic(err)
+	}
+	producer, err := sarama.NewSyncProducerFromClient(client)
+	if err != nil {
+		panic(err)
+	}
+	partition, offset, err := producer.SendMessage(&sarama.ProducerMessage{Topic: "liangtian_topic", Key: nil, Value: sarama.StringEncoder("hahaha")})
+	if err != nil {
+		log.Fatalf("unable to produce message: %q", err)
+	}
+	fmt.Println("partition", partition)
+	fmt.Println("offset", offset)
+}
+
 // 更新
 func (taskLog *TaskLog) Update(id int64, data CommonMap) (int64, error) {
-	return Db.Table(taskLog).ID(id).Update(data)
+
+	return 0, nil
 }
 
 func (taskLog *TaskLog) List(params CommonMap) ([]TaskLog, error) {

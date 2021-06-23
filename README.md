@@ -70,7 +70,7 @@
 ```shell
 docker run --name gocron --link mysql:db -p 5920:5920 -d ouqg/gocron
 ```
-
+docker run --name gocron  -p 5920:5920 -d ouqg/gocron
 配置: /app/conf/app.ini
 
 日志: /app/log/cron.log
